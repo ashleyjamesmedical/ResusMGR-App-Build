@@ -24,6 +24,16 @@ jobs:
       
     - name: Create complete Android project structure
       run: |
+        # Create gradle.properties with AndroidX support
+        cat > gradle.properties << 'EOF'
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+        org.gradle.parallel=true
+        org.gradle.caching=true
+        android.useAndroidX=true
+        android.enableJetifier=true
+        android.nonTransitiveRClass=true
+        EOF
+        
         # Create root build.gradle
         cat > build.gradle << 'EOF'
         plugins {
@@ -31,7 +41,7 @@ jobs:
         }
         EOF
         
-        # Create settings.gradle without conflicting repository settings
+        # Create settings.gradle
         cat > settings.gradle << 'EOF'
         pluginManagement {
             repositories {
@@ -277,8 +287,8 @@ jobs:
         
     - name: Create placeholder icons
       run: |
-        # Create simple placeholder icon files
-        echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+        # Create simple placeholder icon files using printf to avoid encoding issues
+        printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01\x00\x18\xdd\x8d\xb4\x1c\x00\x00\x00\x00IEND\xaeB`\x82' > app/src/main/res/mipmap-mdpi/ic_launcher.png
         cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-mdpi/ic_launcher_round.png
         cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
         cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher_round.png
