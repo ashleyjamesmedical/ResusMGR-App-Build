@@ -170,8 +170,22 @@ jobs:
                 webSettings.setLoadWithOverviewMode(true);
                 webSettings.setUseWideViewPort(true);
         
-                webView.setWebViewClient(new WebViewClient());
-                webView.loadUrl("https://www.resusmgr.co.uk");
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                        view.loadUrl(url);
+                        return true;
+                    }
+                    
+                    @Override
+                    public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                        super.onReceivedError(view, errorCode, description, failingUrl);
+                        android.util.Log.e("WebView", "Error loading: " + failingUrl + " - " + description);
+                    }
+                });
+                
+                // Load your working Replit URL
+                webView.loadUrl("https://ad200567-5cec-45d0-b504-947c4db73628-00-2pm0db88ghd11.spock.replit.dev");
         
                 swipeRefreshLayout.setOnRefreshListener(() -> {
                     webView.reload();
