@@ -29,29 +29,15 @@ jobs:
         plugins {
             id 'com.android.application' version '8.0.0' apply false
         }
-        
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
         EOF
         
-        # Create settings.gradle
+        # Create settings.gradle without conflicting repository settings
         cat > settings.gradle << 'EOF'
         pluginManagement {
             repositories {
                 google()
                 mavenCentral()
                 gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
             }
         }
         rootProject.name = "ResusMGR"
@@ -88,6 +74,11 @@ jobs:
                 sourceCompatibility JavaVersion.VERSION_1_8
                 targetCompatibility JavaVersion.VERSION_1_8
             }
+        }
+        
+        repositories {
+            google()
+            mavenCentral()
         }
         
         dependencies {
@@ -286,19 +277,17 @@ jobs:
         
     - name: Create placeholder icons
       run: |
-        # Create a simple 48x48 PNG icon using ImageMagick if available, otherwise skip
-        if command -v convert >/dev/null 2>&1; then
-          convert -size 48x48 xc:blue app/src/main/res/mipmap-mdpi/ic_launcher.png
-          convert -size 48x48 xc:blue app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-hdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-xhdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-xxhdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/
-          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-xxxhdpi/
-        fi
+        # Create simple placeholder icon files
+        echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
         
     - name: Build Release APK
       run: ./gradlew assembleRelease --no-daemon --stacktrace
