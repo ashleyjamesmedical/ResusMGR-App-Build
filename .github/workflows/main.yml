@@ -22,8 +22,255 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
-    - name: Create minimal gradlew
+    - name: Create complete Android project structure
       run: |
+        # Create root build.gradle
+        cat > build.gradle << 'EOF'
+        plugins {
+            id 'com.android.application' version '8.0.0' apply false
+        }
+        
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
+        
+        # Create settings.gradle
+        cat > settings.gradle << 'EOF'
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "ResusMGR"
+        include ':app'
+        EOF
+        
+        # Create app directory and build.gradle
+        mkdir -p app
+        cat > app/build.gradle << 'EOF'
+        plugins {
+            id 'com.android.application'
+        }
+        
+        android {
+            namespace 'com.ashleyjamesmedical.resusmgr'
+            compileSdk 33
+        
+            defaultConfig {
+                applicationId 'com.ashleyjamesmedical.resusmgr'
+                minSdk 21
+                targetSdk 33
+                versionCode 1
+                versionName '1.0.0'
+            }
+        
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                }
+            }
+        
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_1_8
+                targetCompatibility JavaVersion.VERSION_1_8
+            }
+        }
+        
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.8.0'
+            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+            implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+        }
+        EOF
+        
+        # Create AndroidManifest.xml
+        mkdir -p app/src/main
+        cat > app/src/main/AndroidManifest.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:tools="http://schemas.android.com/tools">
+        
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+        
+            <application
+                android:allowBackup="true"
+                android:dataExtractionRules="@xml/data_extraction_rules"
+                android:fullBackupContent="@xml/backup_rules"
+                android:icon="@mipmap/ic_launcher"
+                android:label="@string/app_name"
+                android:roundIcon="@mipmap/ic_launcher_round"
+                android:supportsRtl="true"
+                android:theme="@style/Theme.ResusMGR"
+                android:usesCleartextTraffic="true"
+                tools:targetApi="31">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true"
+                    android:theme="@style/Theme.ResusMGR">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+        
+        # Create MainActivity.java
+        mkdir -p app/src/main/java/com/ashleyjamesmedical/resusmgr
+        cat > app/src/main/java/com/ashleyjamesmedical/resusmgr/MainActivity.java << 'EOF'
+        package com.ashleyjamesmedical.resusmgr;
+        
+        import android.os.Bundle;
+        import android.webkit.WebView;
+        import android.webkit.WebViewClient;
+        import android.webkit.WebSettings;
+        import androidx.appcompat.app.AppCompatActivity;
+        import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+        
+        public class MainActivity extends AppCompatActivity {
+            private WebView webView;
+            private SwipeRefreshLayout swipeRefreshLayout;
+        
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_main);
+        
+                swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+                webView = findViewById(R.id.webView);
+        
+                WebSettings webSettings = webView.getSettings();
+                webSettings.setJavaScriptEnabled(true);
+                webSettings.setDomStorageEnabled(true);
+                webSettings.setLoadWithOverviewMode(true);
+                webSettings.setUseWideViewPort(true);
+        
+                webView.setWebViewClient(new WebViewClient());
+                webView.loadUrl("https://www.resusmgr.co.uk");
+        
+                swipeRefreshLayout.setOnRefreshListener(() -> {
+                    webView.reload();
+                    swipeRefreshLayout.setRefreshing(false);
+                });
+            }
+        
+            @Override
+            public void onBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    super.onBackPressed();
+                }
+            }
+        }
+        EOF
+        
+        # Create layout files
+        mkdir -p app/src/main/res/layout
+        cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/swipeRefreshLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        
+            <WebView
+                android:id="@+id/webView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        EOF
+        
+        # Create strings.xml
+        mkdir -p app/src/main/res/values
+        cat > app/src/main/res/values/strings.xml << 'EOF'
+        <resources>
+            <string name="app_name">ResusMGR</string>
+        </resources>
+        EOF
+        
+        # Create themes.xml
+        cat > app/src/main/res/values/themes.xml << 'EOF'
+        <resources xmlns:tools="http://schemas.android.com/tools">
+            <style name="Theme.ResusMGR" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+                <item name="colorPrimary">@color/purple_500</item>
+                <item name="colorPrimaryVariant">@color/purple_700</item>
+                <item name="colorOnPrimary">@color/white</item>
+                <item name="colorSecondary">@color/teal_200</item>
+                <item name="colorSecondaryVariant">@color/teal_700</item>
+                <item name="colorOnSecondary">@color/black</item>
+                <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+            </style>
+        </resources>
+        EOF
+        
+        # Create colors.xml
+        cat > app/src/main/res/values/colors.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <color name="purple_200">#FFBB86FC</color>
+            <color name="purple_500">#FF6200EE</color>
+            <color name="purple_700">#FF3700B3</color>
+            <color name="teal_200">#FF03DAC5</color>
+            <color name="teal_700">#FF018786</color>
+            <color name="black">#FF000000</color>
+            <color name="white">#FFFFFFFF</color>
+        </resources>
+        EOF
+        
+        # Create XML resources
+        mkdir -p app/src/main/res/xml
+        cat > app/src/main/res/xml/backup_rules.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <full-backup-content />
+        EOF
+        
+        cat > app/src/main/res/xml/data_extraction_rules.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <data-extraction-rules>
+            <cloud-backup>
+                <include domain="auto" />
+            </cloud-backup>
+            <device-transfer>
+                <include domain="auto" />
+            </device-transfer>
+        </data-extraction-rules>
+        EOF
+        
+        # Create mipmap directories and placeholder icons
+        mkdir -p app/src/main/res/mipmap-hdpi
+        mkdir -p app/src/main/res/mipmap-mdpi
+        mkdir -p app/src/main/res/mipmap-xhdpi
+        mkdir -p app/src/main/res/mipmap-xxhdpi
+        mkdir -p app/src/main/res/mipmap-xxxhdpi
+        
+        # Create proguard rules
+        cat > app/proguard-rules.pro << 'EOF'
+        # Keep WebView related classes
+        -keep class android.webkit.** { *; }
+        -keep class androidx.swiperefreshlayout.widget.** { *; }
+        EOF
+        
+        # Create gradlew
         cat > gradlew << 'EOF'
         #!/bin/sh
         APP_HOME=$(dirname "$0")
@@ -32,11 +279,26 @@ jobs:
         EOF
         chmod +x gradlew
         
-    - name: Setup gradle wrapper
-      run: |
+        # Setup gradle wrapper
         mkdir -p gradle/wrapper
         echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0-bin.zip" > gradle/wrapper/gradle-wrapper.properties
         curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.0.0/gradle/wrapper/gradle-wrapper.jar
+        
+    - name: Create placeholder icons
+      run: |
+        # Create a simple 48x48 PNG icon using ImageMagick if available, otherwise skip
+        if command -v convert >/dev/null 2>&1; then
+          convert -size 48x48 xc:blue app/src/main/res/mipmap-mdpi/ic_launcher.png
+          convert -size 48x48 xc:blue app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-hdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-xhdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-xxhdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/
+          cp app/src/main/res/mipmap-mdpi/ic_launcher_round.png app/src/main/res/mipmap-xxxhdpi/
+        fi
         
     - name: Build Release APK
       run: ./gradlew assembleRelease --no-daemon --stacktrace
