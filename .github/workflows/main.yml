@@ -99,7 +99,7 @@ jobs:
         }
         EOF
         
-        # Create AndroidManifest.xml
+        # Create AndroidManifest.xml with custom blue heart icon
         mkdir -p app/src/main
         cat > app/src/main/AndroidManifest.xml << 'EOF'
         <?xml version="1.0" encoding="utf-8"?>
@@ -111,11 +111,8 @@ jobs:
         
             <application
                 android:allowBackup="true"
-                android:dataExtractionRules="@xml/data_extraction_rules"
-                android:fullBackupContent="@xml/backup_rules"
-                android:icon="@mipmap/ic_launcher"
+                android:icon="@drawable/ic_launcher"
                 android:label="@string/app_name"
-                android:roundIcon="@mipmap/ic_launcher_round"
                 android:supportsRtl="true"
                 android:theme="@style/Theme.ResusMGR"
                 android:usesCleartextTraffic="true"
@@ -183,6 +180,43 @@ jobs:
         }
         EOF
         
+        # Create custom blue heart vector drawable icon matching your design
+        mkdir -p app/src/main/res/drawable
+        cat > app/src/main/res/drawable/ic_launcher.xml << 'EOF'
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+          <!-- Blue gradient background -->
+          <path
+              android:pathData="M0,0h108v108h-108z">
+              <aapt:attr name="android:fillColor" xmlns:aapt="http://schemas.android.com/aapt">
+                  <gradient
+                      android:startColor="#4285F4"
+                      android:endColor="#1E40AF"
+                      android:type="radial"
+                      android:centerX="54"
+                      android:centerY="54"
+                      android:gradientRadius="54" />
+              </aapt:attr>
+          </path>
+          <!-- White heart shape -->
+          <path
+              android:fillColor="#FFFFFF"
+              android:pathData="M54,72.5c-1.2,0 -2.3,-0.5 -3.1,-1.3C38.2,58.8 27,48.9 27,38.5c0,-8.8 7.2,-16 16,-16c4.4,0 8.4,1.8 11.3,4.7L54,26.9l-0.3,0.3C56.6,24.3 60.6,22.5 65,22.5c8.8,0 16,7.2 16,16c0,10.4 -11.2,20.3 -23.9,32.7C56.3,72 55.2,72.5 54,72.5z"/>
+          <!-- Inner heart detail -->
+          <path
+              android:fillColor="#E8F2FF"
+              android:pathData="M54,68c-0.8,0 -1.5,-0.3 -2.1,-0.9C41.1,56.6 31,47.8 31,39c0,-6.1 4.9,-11 11,-11c3,0 5.8,1.2 7.8,3.2L54,35.4l4.2,-4.2C60.2,29.2 63,28 66,28c6.1,0 11,4.9 11,11c0,8.8 -10.1,17.6 -20.9,28.1C55.5,67.7 54.8,68 54,68z"/>
+          <!-- Heart highlight -->
+          <path
+              android:fillColor="#FFFFFF"
+              android:fillAlpha="0.6"
+              android:pathData="M46,35c0,-2.2 1.8,-4 4,-4s4,1.8 4,4s-1.8,4 -4,4S46,37.2 46,35z"/>
+        </vector>
+        EOF
+        
         # Create layout files
         mkdir -p app/src/main/res/layout
         cat > app/src/main/res/layout/activity_main.xml << 'EOF'
@@ -209,16 +243,16 @@ jobs:
         </resources>
         EOF
         
-        # Create themes.xml
+        # Create themes.xml with blue color scheme
         cat > app/src/main/res/values/themes.xml << 'EOF'
         <resources xmlns:tools="http://schemas.android.com/tools">
             <style name="Theme.ResusMGR" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-                <item name="colorPrimary">@color/purple_500</item>
-                <item name="colorPrimaryVariant">@color/purple_700</item>
+                <item name="colorPrimary">#4285F4</item>
+                <item name="colorPrimaryVariant">#1E40AF</item>
                 <item name="colorOnPrimary">@color/white</item>
-                <item name="colorSecondary">@color/teal_200</item>
-                <item name="colorSecondaryVariant">@color/teal_700</item>
-                <item name="colorOnSecondary">@color/black</item>
+                <item name="colorSecondary">#60A5FA</item>
+                <item name="colorSecondaryVariant">#3B82F6</item>
+                <item name="colorOnSecondary">@color/white</item>
                 <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
             </style>
         </resources>
@@ -237,32 +271,6 @@ jobs:
             <color name="white">#FFFFFFFF</color>
         </resources>
         EOF
-        
-        # Create XML resources
-        mkdir -p app/src/main/res/xml
-        cat > app/src/main/res/xml/backup_rules.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <full-backup-content />
-        EOF
-        
-        cat > app/src/main/res/xml/data_extraction_rules.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <data-extraction-rules>
-            <cloud-backup>
-                <include domain="auto" />
-            </cloud-backup>
-            <device-transfer>
-                <include domain="auto" />
-            </device-transfer>
-        </data-extraction-rules>
-        EOF
-        
-        # Create mipmap directories and placeholder icons
-        mkdir -p app/src/main/res/mipmap-hdpi
-        mkdir -p app/src/main/res/mipmap-mdpi
-        mkdir -p app/src/main/res/mipmap-xhdpi
-        mkdir -p app/src/main/res/mipmap-xxhdpi
-        mkdir -p app/src/main/res/mipmap-xxxhdpi
         
         # Create proguard rules
         cat > app/proguard-rules.pro << 'EOF'
@@ -284,20 +292,6 @@ jobs:
         mkdir -p gradle/wrapper
         echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0-bin.zip" > gradle/wrapper/gradle-wrapper.properties
         curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.0.0/gradle/wrapper/gradle-wrapper.jar
-        
-    - name: Create placeholder icons
-      run: |
-        # Create simple placeholder icon files using printf to avoid encoding issues
-        printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01\x00\x18\xdd\x8d\xb4\x1c\x00\x00\x00\x00IEND\xaeB`\x82' > app/src/main/res/mipmap-mdpi/ic_launcher.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-        cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
         
     - name: Build Release APK
       run: ./gradlew assembleRelease --no-daemon --stacktrace
