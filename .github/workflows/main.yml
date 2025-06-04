@@ -1,81 +1,65 @@
+#!/usr/bin/env node
+
 /**
- * ResusMGR APK Build Script - Custom Domain Edition
- * Creates production-ready APK that loads https://www.resusmgr.co.uk/home
- * Features official ResusMGR branding and optimized WebView configuration
+ * ResusMGR Production APK Builder
+ * Builds production-ready APK that loads https://www.resusmgr.co.uk/home
  */
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 
-console.log('🏥 Building ResusMGR APK with Custom Domain...\n');
-
-// Production configuration
-const config = {
-  appName: 'ResusMGR',
-  packageName: 'com.ashleyjamesmedical.resusmgr',
-  versionCode: 3,
-  versionName: '1.2.0',
+const APP_CONFIG = {
+  name: 'ResusMGR',
+  package: 'com.ashleyjamesmedical.resusmgr',
+  version: '1.3.0',
+  versionCode: 4,
+  url: 'https://www.resusmgr.co.uk/home',
+  domain: 'www.resusmgr.co.uk',
   minSdk: 24,
-  targetSdk: 34,
-  compileSdk: 34,
-  appUrl: 'https://www.resusmgr.co.uk/home',
-  domain: 'www.resusmgr.co.uk'
+  targetSdk: 34
 };
 
-// Create project structure
-const projectDir = 'resusmgr-apk';
-const appDir = `${projectDir}/app`;
-const srcDir = `${appDir}/src/main`;
-const resDir = `${srcDir}/res`;
-const javaDir = `${srcDir}/java/com/ashleyjamesmedical/resusmgr`;
+const PROJECT_DIR = 'resusmgr-production';
 
-// Clean and create directories
-if (fs.existsSync(projectDir)) {
-  fs.rmSync(projectDir, { recursive: true, force: true });
+console.log('Building ResusMGR Production APK...');
+
+// Clean and create project structure
+if (fs.existsSync(PROJECT_DIR)) {
+  fs.rmSync(PROJECT_DIR, { recursive: true });
 }
 
-const directories = [
-  projectDir,
-  appDir,
-  srcDir,
-  resDir,
-  `${resDir}/values`,
-  `${resDir}/values-night`,
-  `${resDir}/layout`,
-  `${resDir}/drawable`,
-  `${resDir}/drawable-v24`,
-  `${resDir}/mipmap-mdpi`,
-  `${resDir}/mipmap-hdpi`,
-  `${resDir}/mipmap-xhdpi`,
-  `${resDir}/mipmap-xxhdpi`,
-  `${resDir}/mipmap-xxxhdpi`,
-  `${resDir}/xml`,
-  javaDir
+const dirs = [
+  PROJECT_DIR,
+  `${PROJECT_DIR}/app`,
+  `${PROJECT_DIR}/app/src/main`,
+  `${PROJECT_DIR}/app/src/main/java/com/ashleyjamesmedical/resusmgr`,
+  `${PROJECT_DIR}/app/src/main/res/layout`,
+  `${PROJECT_DIR}/app/src/main/res/values`,
+  `${PROJECT_DIR}/app/src/main/res/drawable`,
+  `${PROJECT_DIR}/app/src/main/res/mipmap-mdpi`,
+  `${PROJECT_DIR}/app/src/main/res/mipmap-hdpi`,
+  `${PROJECT_DIR}/app/src/main/res/mipmap-xhdpi`,
+  `${PROJECT_DIR}/app/src/main/res/mipmap-xxhdpi`,
+  `${PROJECT_DIR}/app/src/main/res/mipmap-xxxhdpi`,
+  `${PROJECT_DIR}/app/src/main/res/xml`
 ];
 
-directories.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+dirs.forEach(dir => fs.mkdirSync(dir, { recursive: true }));
 
-function createFile(filePath, content) {
+function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content.trim());
-  console.log(`✅ Created: ${filePath}`);
+  console.log(`Created: ${filePath}`);
 }
 
 // Root build.gradle
-const rootBuildGradle = `
+writeFile(`${PROJECT_DIR}/build.gradle`, `
 buildscript {
-    ext.kotlin_version = "1.9.10"
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.android.tools.build:gradle:8.1.2'
     }
 }
 
@@ -89,46 +73,30 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-`;
+`);
 
-// App build.gradle with ProGuard optimization
-const appBuildGradle = `
+// App build.gradle
+writeFile(`${PROJECT_DIR}/app/build.gradle`, `
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
 }
 
 android {
-    compileSdk ${config.compileSdk}
-    namespace "${config.packageName}"
-    
+    namespace '${APP_CONFIG.package}'
+    compileSdk ${APP_CONFIG.targetSdk}
+
     defaultConfig {
-        applicationId "${config.packageName}"
-        minSdk ${config.minSdk}
-        targetSdk ${config.targetSdk}
-        versionCode ${config.versionCode}
-        versionName "${config.versionName}"
-        
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        
-        // WebView performance optimizations
-        resConfigs "en"
-        vectorDrawables.useSupportLibrary = true
+        applicationId "${APP_CONFIG.package}"
+        minSdk ${APP_CONFIG.minSdk}
+        targetSdk ${APP_CONFIG.targetSdk}
+        versionCode ${APP_CONFIG.versionCode}
+        versionName "${APP_CONFIG.version}"
     }
-    
+
     buildTypes {
         release {
             minifyEnabled true
-            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            
-            // Performance optimizations
-            crunchPngs false
-            debuggable false
-        }
-        debug {
-            minifyEnabled false
-            debuggable true
         }
     }
     
@@ -136,347 +104,189 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-    
-    buildFeatures {
-        viewBinding true
-    }
-    
-    packagingOptions {
-        resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
-        }
-    }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'com.google.android.material:material:1.10.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    implementation 'androidx.webkit:webkit:1.9.0'
-    
-    // Network security
-    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
-    
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
-`;
+`);
 
-// ProGuard rules for WebView optimization
-const proguardRules = `
-# WebView optimization
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
-
-# Keep WebView related classes
--keep class android.webkit.** { *; }
--keep class androidx.webkit.** { *; }
-
-# ResusMGR specific
--keep class com.ashleyjamesmedical.resusmgr.** { *; }
-
-# Remove debug logs in release
--assumenosideeffects class android.util.Log {
-    public static *** d(...);
-    public static *** v(...);
-    public static *** i(...);
-}
-`;
-
-// AndroidManifest.xml with comprehensive permissions and optimizations
-const androidManifest = `
+// AndroidManifest.xml
+writeFile(`${PROJECT_DIR}/app/src/main/AndroidManifest.xml`, `
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Network permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    
-    <!-- Device permissions for PWA features -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    
-    <!-- File access for downloads -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    
-    <!-- Storage permissions for Android 13+ -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.ResusMGR"
-        android:hardwareAccelerated="true"
-        android:largeHeap="true"
-        android:usesCleartextTraffic="false"
-        tools:targetApi="31">
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="false">
 
-        <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.ResusMGR.Splash"
-            android:screenOrientation="portrait"
-            android:launchMode="singleTop"
-            android:windowSoftInputMode="adjustResize">
-            
+            android:theme="@style/AppTheme"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             
-            <!-- Deep linking for ResusMGR domain -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" 
-                      android:host="${config.domain}" />
+                <data android:scheme="https" android:host="${APP_CONFIG.domain}" />
             </intent-filter>
         </activity>
 
-        <!-- File provider for downloads -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${config.packageName}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-
-        <!-- Digital Asset Links verification -->
-        <meta-data 
-            android:name="asset_statements" 
-            android:value="@string/asset_statements" />
+        <meta-data android:name="asset_statements" android:value="@string/asset_statements" />
 
     </application>
 </manifest>
-`;
+`);
 
-// Enhanced MainActivity with optimized WebView
-const mainActivity = `
-package com.ashleyjamesmedical.resusmgr
+// MainActivity.java
+writeFile(`${PROJECT_DIR}/app/src/main/java/com/ashleyjamesmedical/resusmgr/MainActivity.java`, `
+package com.ashleyjamesmedical.resusmgr;
 
-import android.annotation.SuppressLint
-import android.content.Intent
-import android.graphics.Bitmap
-import android.net.Uri
-import android.os.Bundle
-import android.view.View
-import android.webkit.*
-import android.widget.ProgressBar
-import androidx.appcompat.app.AppCompatActivity
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import androidx.webkit.WebSettingsCompat
-import androidx.webkit.WebViewFeature
+import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
+import android.os.Bundle;
+import android.view.View;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.PermissionRequest;
+import android.widget.ProgressBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-class MainActivity : AppCompatActivity() {
+public class MainActivity extends AppCompatActivity {
 
-    private lateinit var webView: WebView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var swipeRefresh: SwipeRefreshLayout
-    
-    companion object {
-        private const val RESUSMGR_URL = "${config.appUrl}"
-        private const val RESUSMGR_DOMAIN = "${config.domain}"
-    }
+    private WebView webView;
+    private ProgressBar progressBar;
+    private SwipeRefreshLayout swipeRefresh;
+    private static final String RESUSMGR_URL = "${APP_CONFIG.url}";
 
     @SuppressLint("SetJavaScriptEnabled")
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        // Initialize views
-        webView = findViewById(R.id.webview)
-        progressBar = findViewById(R.id.progress_bar)
-        swipeRefresh = findViewById(R.id.swipe_refresh)
+        webView = findViewById(R.id.webview);
+        progressBar = findViewById(R.id.progress_bar);
+        swipeRefresh = findViewById(R.id.swipe_refresh);
 
-        // Configure swipe refresh
-        swipeRefresh.setOnRefreshListener {
-            webView.reload()
-        }
-        swipeRefresh.setColorSchemeColors(
-            getColor(R.color.colorPrimary),
-            getColor(R.color.colorAccent)
-        )
-
-        // Configure WebView
-        setupWebView()
+        setupWebView();
+        setupSwipeRefresh();
         
-        // Load ResusMGR
-        webView.loadUrl(RESUSMGR_URL)
+        webView.loadUrl(RESUSMGR_URL);
     }
 
-    private fun setupWebView() {
-        val webSettings = webView.settings
-        
-        // Enable JavaScript and DOM storage
-        webSettings.javaScriptEnabled = true
-        webSettings.domStorageEnabled = true
-        webSettings.databaseEnabled = true
-        webSettings.setAppCacheEnabled(true)
-        
-        // File access settings
-        webSettings.allowFileAccess = true
-        webSettings.allowContentAccess = true
-        webSettings.allowFileAccessFromFileURLs = false
-        webSettings.allowUniversalAccessFromFileURLs = false
-        
-        // Security and performance
-        webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-        webSettings.setSupportZoom(false)
-        webSettings.builtInZoomControls = false
-        webSettings.displayZoomControls = false
-        webSettings.loadWithOverviewMode = true
-        webSettings.useWideViewPort = true
-        
-        // Cache settings for offline support
-        webSettings.cacheMode = WebSettings.LOAD_DEFAULT
-        webSettings.setAppCachePath(cacheDir.absolutePath)
-        
-        // Text and media settings
-        webSettings.textZoom = 100
-        webSettings.defaultTextEncodingName = "utf-8"
-        webSettings.mediaPlaybackRequiresUserGesture = false
-        
-        // Dark mode support
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
-            WebSettingsCompat.setForceDark(webSettings, WebSettingsCompat.FORCE_DARK_AUTO)
-        }
-        
-        // User agent for better compatibility
-        webSettings.userAgentString = "\${webSettings.userAgentString} ResusMGR/\${BuildConfig.VERSION_NAME}"
+    private void setupWebView() {
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setAppCacheEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setMediaPlaybackRequiresUserGesture(false);
 
-        // WebView client for navigation handling
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url.toString()
-                
-                return when {
-                    url.contains(RESUSMGR_DOMAIN) -> {
-                        // Stay within ResusMGR domain
-                        view?.loadUrl(url)
-                        true
-                    }
-                    url.startsWith("tel:") || url.startsWith("mailto:") -> {
-                        // Handle external intents
-                        try {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                        } catch (e: Exception) {
-                            // Handle error gracefully
-                        }
-                        true
-                    }
-                    else -> {
-                        // Open external links in browser
-                        try {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                        } catch (e: Exception) {
-                            // Handle error gracefully
-                        }
-                        true
-                    }
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url.contains("${APP_CONFIG.domain}")) {
+                    view.loadUrl(url);
+                    return true;
                 }
+                return super.shouldOverrideUrlLoading(view, url);
             }
 
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                super.onPageStarted(view, url, favicon)
-                progressBar.visibility = View.VISIBLE
-                swipeRefresh.isRefreshing = true
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                progressBar.setVisibility(View.VISIBLE);
             }
 
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                progressBar.visibility = View.GONE
-                swipeRefresh.isRefreshing = false
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                progressBar.setVisibility(View.GONE);
+                swipeRefresh.setRefreshing(false);
+            }
+        });
+
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                progressBar.setProgress(newProgress);
             }
 
-            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-                super.onReceivedError(view, request, error)
-                progressBar.visibility = View.GONE
-                swipeRefresh.isRefreshing = false
+            @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                request.grant(request.getResources());
             }
-        }
-
-        // WebChrome client for enhanced features
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                super.onProgressChanged(view, newProgress)
-                progressBar.progress = newProgress
-            }
-
-            override fun onPermissionRequest(request: PermissionRequest?) {
-                // Grant common PWA permissions
-                request?.grant(request.resources)
-            }
-
-            override fun onShowFileChooser(
-                webView: WebView?,
-                filePathCallback: ValueCallback<Array<Uri>>?,
-                fileChooserParams: FileChooserParams?
-            ): Boolean {
-                // Handle file uploads if needed
-                return super.onShowFileChooser(webView, filePathCallback, fileChooserParams)
-            }
-        }
+        });
     }
 
-    override fun onBackPressed() {
-        when {
-            webView.canGoBack() -> webView.goBack()
-            else -> super.onBackPressed()
+    private void setupSwipeRefresh() {
+        swipeRefresh.setOnRefreshListener(() -> webView.reload());
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        webView.onPause()
+    @Override
+    protected void onPause() {
+        super.onPause();
+        webView.onPause();
     }
 
-    override fun onResume() {
-        super.onResume()
-        webView.onResume()
+    @Override
+    protected void onResume() {
+        super.onResume();
+        webView.onResume();
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        webView.destroy()
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        webView.destroy();
     }
 }
-`;
+`);
 
-// Enhanced layout with progress bar and swipe refresh
-const activityMainLayout = `
+// Layout
+writeFile(`${PROJECT_DIR}/app/src/main/res/layout/activity_main.xml`, `
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.swiperefreshlayout.widget.SwipeRefreshLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res/auto"
     android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -502,188 +312,53 @@ const activityMainLayout = `
     </RelativeLayout>
 
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-`;
+`);
 
-// Enhanced strings.xml with domain verification
-const stringsXml = `
+// Strings
+writeFile(`${PROJECT_DIR}/app/src/main/res/values/strings.xml`, `
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ResusMGR</string>
-    <string name="loading">Loading ResusMGR...</string>
-    <string name="connection_error">Connection error. Pull to refresh.</string>
-    
+    <string name="app_name">${APP_CONFIG.name}</string>
     <string name="asset_statements">
         [{
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
                 "namespace": "web",
-                "site": "https://${config.domain}"
+                "site": "https://${APP_CONFIG.domain}"
             }
         }]
     </string>
 </resources>
-`;
+`);
 
-// Enhanced colors matching ResusMGR branding
-const colorsXml = `
+// Colors
+writeFile(`${PROJECT_DIR}/app/src/main/res/values/colors.xml`, `
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ResusMGR Brand Colors -->
     <color name="colorPrimary">#2563EB</color>
     <color name="colorPrimaryDark">#1D4ED8</color>
     <color name="colorAccent">#7C3AED</color>
     <color name="colorSecondary">#DC2626</color>
-    
-    <!-- Theme Colors -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="gray_light">#F3F4F6</color>
-    <color name="gray_dark">#1F2937</color>
-    
-    <!-- Status Colors -->
-    <color name="success">#10B981</color>
-    <color name="warning">#F59E0B</color>
-    <color name="error">#EF4444</color>
 </resources>
-`;
+`);
 
-// Night mode colors
-const colorsNightXml = `
-<?xml version="1.0" encoding="utf-8"?>
+// Styles
+writeFile(`${PROJECT_DIR}/app/src/main/res/values/styles.xml`, `
 <resources>
-    <color name="colorPrimary">#3B82F6</color>
-    <color name="colorPrimaryDark">#2563EB</color>
-    <color name="colorAccent">#8B5CF6</color>
-</resources>
-`;
-
-// Enhanced themes with splash screen
-const themesXml = `
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme -->
-    <style name="Theme.ResusMGR" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:statusBarColor">@color/colorPrimary</item>
         <item name="android:navigationBarColor">@color/colorPrimary</item>
-        <item name="android:windowLightStatusBar">false</item>
-    </style>
-    
-    <!-- Splash screen theme -->
-    <style name="Theme.ResusMGR.Splash" parent="Theme.ResusMGR">
-        <item name="android:windowBackground">@drawable/splash_background</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFullscreen">false</item>
-        <item name="android:windowContentOverlay">@null</item>
     </style>
 </resources>
-`;
+`);
 
-// Splash screen background
-const splashBackground = `
-<?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background color -->
-    <item android:drawable="@color/colorPrimary" />
-    
-    <!-- ResusMGR logo -->
-    <item android:gravity="center">
-        <bitmap
-            android:src="@drawable/ic_launcher_foreground"
-            android:gravity="center" />
-    </item>
-</layer-list>
-`;
-
-// File paths for provider
-const filePaths = `
-<?xml version="1.0" encoding="utf-8"?>
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <files-path name="files" path="." />
-    <cache-path name="cache" path="." />
-    <external-path name="external" path="." />
-    <external-files-path name="external_files" path="." />
-    <external-cache-path name="external_cache" path="." />
-</paths>
-`;
-
-// Data extraction rules
-const dataExtractionRules = `
-<?xml version="1.0" encoding="utf-8"?>
-<data-extraction-rules>
-    <cloud-backup>
-        <include domain="sharedpref" path="."/>
-        <exclude domain="sharedpref" path="device.xml"/>
-        <include domain="database" path="."/>
-        <include domain="file" path="." />
-    </cloud-backup>
-    <device-transfer>
-        <include domain="sharedpref" path="."/>
-        <exclude domain="sharedpref" path="device.xml"/>
-        <include domain="database" path="."/>
-        <include domain="file" path="." />
-    </device-transfer>
-</data-extraction-rules>
-`;
-
-// Backup rules
-const backupRules = `
-<?xml version="1.0" encoding="utf-8"?>
-<full-backup-content>
-    <include domain="sharedpref" path="."/>
-    <exclude domain="sharedpref" path="device_prefs.xml"/>
-    <include domain="database" path="."/>
-    <include domain="file" path="." />
-</full-backup-content>
-`;
-
-// Network security config for HTTPS enforcement
-const networkSecurityConfig = `
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">${config.domain}</domain>
-    </domain-config>
-    <base-config cleartextTrafficPermitted="false" />
-</network-security-config>
-`;
-
-// Gradle properties
-const gradleProperties = `
-android.useAndroidX=true
-android.enableJetifier=true
-org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
-android.nonTransitiveRClass=true
-android.nonFinalResIds=false
-org.gradle.parallel=true
-org.gradle.caching=true
-kotlin.code.style=official
-`;
-
-// Settings gradle
-const settingsGradle = `
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-rootProject.name = "ResusMGR"
-include ':app'
-`;
-
-// ResusMGR icon drawable
-const resusmgrIcon = `
+// ResusMGR Icon
+writeFile(`${PROJECT_DIR}/app/src/main/res/drawable/ic_launcher_foreground.xml`, `
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -691,56 +366,20 @@ const resusmgrIcon = `
     android:viewportHeight="108">
     
     <!-- Medical gradient background -->
-    <group android:pivotX="54" android:pivotY="54">
-        <!-- Outer circle - Blue -->
+    <group>
         <path android:fillColor="#2563EB"
-            android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"/>
-        <!-- Middle circle - Purple -->
+            android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0"/>
         <path android:fillColor="#7C3AED"
-            android:pathData="M54,54m-35,0a35,35 0,1 1,70 0a35,35 0,1 1,-70 0"/>
-        <!-- Inner circle - Red accent -->
+            android:pathData="M54,54m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0"/>
         <path android:fillColor="#DC2626"
-            android:pathData="M54,54m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"/>
+            android:pathData="M54,54m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0"/>
     </group>
     
-    <!-- White heart icon -->
+    <!-- Heart icon -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M54,78L47.7,72.3C36.45,62.01 28.8,55.17 28.8,46.8C28.8,40.32 33.84,35.28 40.32,35.28C43.92,35.28 47.52,37.08 54,40.32C60.48,37.08 64.08,35.28 67.68,35.28C74.16,35.28 79.2,40.32 79.2,46.8C79.2,55.17 71.55,62.01 60.3,72.3L54,78Z"/>
+        android:pathData="M54,76L47.4,70C36.9,60.5 29.7,54.2 29.7,46.5C29.7,40.5 34.5,35.7 40.5,35.7C43.8,35.7 47.1,37.4 54,40.5C60.9,37.4 64.2,35.7 67.5,35.7C73.5,35.7 78.3,40.5 78.3,46.5C78.3,54.2 71.1,60.5 60.6,70L54,76Z"/>
 </vector>
-`;
-
-// Create all files
-console.log('📱 Creating ResusMGR Android project...');
-
-// Root files
-createFile(`${projectDir}/build.gradle`, rootBuildGradle);
-createFile(`${projectDir}/settings.gradle`, settingsGradle);
-createFile(`${projectDir}/gradle.properties`, gradleProperties);
-
-// App files
-createFile(`${appDir}/build.gradle`, appBuildGradle);
-createFile(`${appDir}/proguard-rules.pro`, proguardRules);
-createFile(`${srcDir}/AndroidManifest.xml`, androidManifest);
-
-// Java/Kotlin source
-createFile(`${javaDir}/MainActivity.kt`, mainActivity);
-
-// Resources
-createFile(`${resDir}/layout/activity_main.xml`, activityMainLayout);
-createFile(`${resDir}/values/strings.xml`, stringsXml);
-createFile(`${resDir}/values/colors.xml`, colorsXml);
-createFile(`${resDir}/values-night/colors.xml`, colorsNightXml);
-createFile(`${resDir}/values/themes.xml`, themesXml);
-
-// Drawables
-createFile(`${resDir}/drawable/ic_launcher_foreground.xml`, resusmgrIcon);
-createFile(`${resDir}/drawable/splash_background.xml`, splashBackground);
-
-// XML resources
-createFile(`${resDir}/xml/data_extraction_rules.xml`, dataExtractionRules);
-createFile(`${resDir}/xml/backup_rules.xml`, backupRules);
-createFile(`${resDir}/xml/file_paths.xml`, filePaths);
-createFile(`${resDir}/xml/network_security_config.xml`, networkSecurityConfig);
+`);
 
 // Adaptive icons for all densities
 const adaptiveIcon = `
@@ -752,128 +391,111 @@ const adaptiveIcon = `
 `;
 
 ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'].forEach(density => {
-  createFile(`${resDir}/mipmap-${density}/ic_launcher.xml`, adaptiveIcon);
-  createFile(`${resDir}/mipmap-${density}/ic_launcher_round.xml`, adaptiveIcon);
+  writeFile(`${PROJECT_DIR}/app/src/main/res/mipmap-${density}/ic_launcher.xml`, adaptiveIcon);
 });
 
-// Gradle wrapper files
-const gradleWrapper = `
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-bin.zip
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-`;
+// ProGuard rules
+writeFile(`${PROJECT_DIR}/app/proguard-rules.pro`, `
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keep class android.webkit.** { *; }
+-keep class ${APP_CONFIG.package}.** { *; }
+`);
 
-createFile(`${projectDir}/gradle/wrapper/gradle-wrapper.properties`, gradleWrapper);
+// Gradle properties
+writeFile(`${PROJECT_DIR}/gradle.properties`, `
+android.useAndroidX=true
+android.enableJetifier=true
+org.gradle.jvmargs=-Xmx2048m
+`);
 
-// Build instructions
-const buildInstructions = `
-# ResusMGR APK Build Instructions
+// Settings
+writeFile(`${PROJECT_DIR}/settings.gradle`, `
+include ':app'
+rootProject.name = "${APP_CONFIG.name}"
+`);
 
-## 🏥 About This Build
-This APK connects directly to: **${config.appUrl}**
-- Package: ${config.packageName}
-- Version: ${config.versionName} (${config.versionCode})
-- Target SDK: ${config.targetSdk}
+// Build script
+writeFile(`${PROJECT_DIR}/build.sh`, `
+#!/bin/bash
+echo "Building ResusMGR APK..."
+./gradlew clean
+./gradlew assembleRelease
+echo "APK built: app/build/outputs/apk/release/app-release.apk"
+`);
 
-## 🛠️ Prerequisites
-1. **Android Studio Arctic Fox** or newer
-2. **Java 8+** or **OpenJDK 11+**
-3. **Android SDK** with API ${config.targetSdk}
-4. Set **ANDROID_HOME** environment variable
+// Windows build script
+writeFile(`${PROJECT_DIR}/build.bat`, `
+@echo off
+echo Building ResusMGR APK...
+gradlew.bat clean
+gradlew.bat assembleRelease
+echo APK built: app\\build\\outputs\\apk\\release\\app-release.apk
+pause
+`);
 
-## 🚀 Build Methods
+// README
+writeFile(`${PROJECT_DIR}/README.md`, `
+# ResusMGR Production APK
 
-### Method 1: Android Studio (Recommended)
-1. Open Android Studio
-2. Select "Open an Existing Project"
-3. Choose the \`${projectDir}\` folder
-4. Wait for Gradle sync
-5. Go to **Build → Generate Signed Bundle / APK**
-6. Choose **APK** and follow signing wizard
+## Configuration
+- **App URL**: ${APP_CONFIG.url}
+- **Package**: ${APP_CONFIG.package}
+- **Version**: ${APP_CONFIG.version} (${APP_CONFIG.versionCode})
 
-### Method 2: Command Line
+## Build Instructions
+
+### Android Studio
+1. Open this folder in Android Studio
+2. Wait for sync to complete
+3. Build > Generate Signed Bundle/APK
+4. Choose APK and follow signing steps
+
+### Command Line
 \`\`\`bash
-cd ${projectDir}
+# Linux/Mac
+chmod +x build.sh
+./build.sh
 
-# Make gradlew executable (Linux/Mac)
-chmod +x gradlew
+# Windows
+build.bat
+\`\`\`
 
-# Build debug APK
-./gradlew assembleDebug
-
-# Build release APK (requires signing)
+### Manual Build
+\`\`\`bash
 ./gradlew assembleRelease
 \`\`\`
 
-### Method 3: Windows Command Line
-\`\`\`cmd
-cd ${projectDir}
-gradlew.bat assembleDebug
-gradlew.bat assembleRelease
-\`\`\`
+## Output
+APK will be created at: \`app/build/outputs/apk/release/app-release.apk\`
 
-## 📱 Output Locations
-- **Debug APK**: \`${projectDir}/app/build/outputs/apk/debug/app-debug.apk\`
-- **Release APK**: \`${projectDir}/app/build/outputs/apk/release/app-release.apk\`
+## Features
+- Official ResusMGR icon with medical gradient
+- Loads ${APP_CONFIG.url} directly
+- Optimized WebView with offline support
+- Swipe-to-refresh functionality
+- Domain verification for deep linking
+- Production-ready with ProGuard optimization
 
-## 🔧 Features Included
-- ✅ Official ResusMGR branding with medical gradient icon
-- ✅ Optimized WebView with hardware acceleration
-- ✅ Swipe-to-refresh functionality
-- ✅ Progress indicators and loading states
-- ✅ Deep linking support for ResusMGR domain
-- ✅ Offline caching capabilities
-- ✅ Dark mode support
-- ✅ ProGuard optimization for smaller APK size
-- ✅ File download support
-- ✅ Camera and microphone permissions for PWA features
-- ✅ Network security enforcement (HTTPS only)
+## Testing
+1. Install APK on Android device
+2. Verify app opens to ResusMGR homepage
+3. Test all medical protocol features
+4. Verify offline functionality
+5. Test swipe-to-refresh
 
-## 🧪 Testing Checklist
-- [ ] App launches and loads ${config.appUrl}
-- [ ] All ResusMGR features work correctly
-- [ ] Swipe-to-refresh works
-- [ ] Back button navigation works
-- [ ] Deep links from browser work
-- [ ] App works in airplane mode (cached content)
-- [ ] App respects system dark mode
-- [ ] File downloads work correctly
+Ready for Google Play Store submission.
+`);
 
-## 📦 Publishing to Google Play Store
-1. Create **release build** with proper signing
-2. Test on multiple devices and Android versions
-3. Ensure all **Google Play policies** are met
-4. Update **version code** for each release
-5. Prepare store listing with screenshots
-6. Submit for review
-
-## 🔐 App Signing
-For production releases, you'll need to create a signing key:
-\`\`\`bash
-keytool -genkey -v -keystore resusmgr-release.keystore -alias resusmgr -keyalg RSA -keysize 2048 -validity 10000
-\`\`\`
-
-## 📞 Support
-For build issues, contact Ashley James Medical development team.
-
----
-**ResusMGR** - Professional Resuscitation Management
-© 2024 Ashley James Medical
-`;
-
-createFile(`${projectDir}/BUILD_INSTRUCTIONS.md`, buildInstructions);
-
-// Summary
-console.log('\n🎉 ResusMGR APK project created successfully!');
-console.log(`📱 App URL: ${config.appUrl}`);
-console.log(`📁 Project: ${projectDir}/`);
-console.log(`📖 Instructions: ${projectDir}/BUILD_INSTRUCTIONS.md`);
-console.log(`\n✨ Features:`);
-console.log(`   • Official ResusMGR branding with medical gradient icon`);
-console.log(`   • Optimized WebView performance`);
-console.log(`   • Swipe-to-refresh and offline support`);
-console.log(`   • Deep linking and PWA features`);
-console.log(`   • Production-ready with ProGuard optimization`);
-console.log(`\n🔧 Ready to build professional ResusMGR APK!`);
+console.log('\nResusMGR Production APK project created successfully!');
+console.log(`Project directory: ${PROJECT_DIR}/`);
+console.log(`App will load: ${APP_CONFIG.url}`);
+console.log('\nTo build:');
+console.log(`cd ${PROJECT_DIR}`);
+console.log('./gradlew assembleRelease');
+console.log('\nFeatures included:');
+console.log('- Official ResusMGR medical gradient icon');
+console.log('- Optimized WebView for emergency use');
+console.log('- Production-ready configuration');
+console.log('- Domain verification and deep linking');
